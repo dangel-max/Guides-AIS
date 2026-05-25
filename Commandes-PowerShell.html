@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Windows Server Admin - PowerShell</title>
+    <style>
+        :root{--bg:#0f172a;--card:#1e293b;--accent:#38bdf8;--text:#f1f5f9;--muted:#bce;--cmd:#fbbf24;--code:#000}
+        body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);margin:0;padding:20px;line-height:1.6}
+        .container{max-width:1200px;margin:auto}
+        header{text-align:center;padding:15px;background:#1e293b;border-radius:10px;margin-bottom:5px}
+        h1{color:var(--accent);margin:0}
+        input{width:80%;padding:10px;margin-top:15px;border-radius:20px;border:1px solid var(--accent);background:var(--bg);color:#fff;outline:none}
+        h2{color:var(--accent);border-bottom:1px solid #334155;margin-top:30px;padding-bottom:5px}
+		blockquote{font-size: 0.8em}
+		a{font-weight:normal;font-family:monospace;font-size:1.1em;text-decoration:none;letter-spacing: -0.03em;color:#aff}
+		a:not(:nth-last-of-type(1))::after{text-decoration:none;content:' • '}
+		a:hover{color:var(--accent)}
+		section{width:100%}
+		code{background: #222; padding: 0 5px;font-size: 1.3em}
+        .cmd-box{background:var(--card);margin-bottom:5px;border-radius:5px;border:1px solid #334155;width:100%}
+        .summary{padding:7px 15px;cursor:pointer;display:flex;align-items:center;justify-content:start;gap:10px 30px}
+        .summary:hover{background:#2d3e54}
+        .name{color:#fff777;font-weight:normal;font-family:monospace;font-size:1.2em;text-align:end}
+        .desc{color:var(--muted);text-align:start}
+        .details{display:none;padding:7px 15px;background:#0a0f1d;border-top:1px solid #334155}
+		.flagdtl{color: #aaa;display:inline}
+		.flagdtl::before{content:'→ ';color:#839}
+        .flags{color:#ffdcae;font-size:0.9em;margin-bottom:0px}
+		.manref{font-weight:bold;font-family:monospace;}
+		pre{background:var(--code);color:#e2e8f0;border-radius:5px;font-size:1.1em;display:inline}
+        .comment{color:#1b6;display:inline-block}
+		.pre-container {display:flex;gap: 15px;margin:10px 0;width:100%}
+		.pre-container pre {flex: 0 1 30%;margin: 0;border: 1px solid #666;border-style: inset;padding: 20px;}
+		.pre-container pre:nth-of-type(2){flex: 1 1 70%}
+		.tag{font-size: 0.7rem;background: var(--accent);color: var(--bg);padding: 2px 8px;border-radius: 10px;text-transform: uppercase;font-weight: bold;}
+		#links{text-align: center}
+        .param {color:#999}
+		.cmd{color:#fff999}
+        blockquote {border-left:4px solid #f03854;margin: 15px 0;padding: 10px 20px;background: #670022; font-size: 0.95em; }
+        @media (max-width: 768px) { .pre-container { flex-direction: column; } }
+    </style>
+    <script>
+        function toggle(id) {
+            const el = document.getElementById(id);
+            el.style.display = el.style.display === "block" ? "none" : "block";
+        }
+		function search(){
+        let q = document.getElementById('search').value.toLowerCase();
+        document.querySelectorAll('.cmd-box').forEach(box => {
+            box.style.display = box.innerText.toLowerCase().includes(q) ? 'block' : 'none';
+        });
+        document.querySelectorAll('.cat').forEach(cat => {
+            let vis = Array.from(cat.querySelectorAll('.cmd-box')).some(b => b.style.display !== 'none');
+            cat.style.display = vis ? 'block' : 'none';
+        });
+    }
+    </script>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>Windows Server Administration : PowerShell Guide</h1>
+        <input type="text" id="search" placeholder="Rechercher une commande..." onkeyup="search()">
+    <p>Cette documentation regroupe les verbes (Get, Set, New, Remove) essentiels pour gérer un serveur Windows.</p>
+    </header>
+<div style="text-align: center"><a href="#user">User Management</a> <a href="#netadmin">Network Admin</a> <a href="#services">Services & Rôles Serveur</a> <a href="#maintenance">Maintenance Sytème</a> <a href="#monitoring">Monitoring & Sys Info</a> <a href="#sysadmin">Sys Admin</a> <a href="#links">Liens Utiles</a></div>
+    <!-- ================= USER MANAGEMENT ================= -->
+    <section id="user">
+        <h2>Gestion des Utilisateurs & Groupes</h2>
+        
+        <div class="cmd-box">
+            <div class="summary" onclick="toggle('new_user')">
+                <span class="name">New-LocalUser</span>
+                <span class="desc">Créer un compte utilisateur local sécurisé.</span>
+            </div>
+            <div id="new_user" class="details">
+                <div class="flags">Note : Pour manipuler les mots de passe, PowerShell nécessite l'utilisation d'une chaîne sécurisée (SecureString).</div>
+                <div class="pre-container">
+                    <pre>
+<span class="comment"># Méthode interactive</span>
+<span class="cmd">New-LocalUser</span> <span class="param">-Name</span> "Admin_Temp" <span class="param">-Description</span> "Compte temporaire"<span class="param">-NoPassword</span>
+
+<span class="comment"># Avec mot de passe prédéfini</span>
+<span class="cmd">$Password</span> = <span class="cmd">Read-Host</span> <span class="param">-AsSecureString</span>
+: **********
+<span class="cmd">New-LocalUser</span> <span class="param">-Name</span> "Alice" <span class="param">-Password</span> <span class="cmd">$Password</span> <span class="param">-FullName</span> "Alice Smith"</pre>
+                </div>
+            </div>
+        </div>
+
+        <div class="cmd-box">
+            <div class="summary" onclick="toggle('group_member')">
+                <span class="name">Add-LocalGroupMember</span>
+                <span class="desc">Gérer les privilèges (ex: ajouter aux Administrateurs).</span>
+            </div>
+            <div id="group_member" class="details">
+			<div class="pre-container">
+                <pre>
+<span class="comment"># Ajouter un utilisateur au groupe local des Administrateurs</span>
+<span class="cmd">Add-LocalGroupMember</span> <span class="param">-Group</span> "Administrateurs" <span class="param">-Member</span> "Alice"
+
+<span class="comment"># Vérifier les membres d'un groupe</span>
+<span class="cmd">Get-LocalGroupMember</span> <span class="param">-Group</span> "Utilisateurs du Bureau à distance"</pre>
+            </div>
+			</div>
+        </div>
+    </section>
+
+    <!-- ================= NETWORK & CONNECTIVITY ================= -->
+    <section id="netadmin">
+        <h2>Réseau & Connectivité</h2>
+        
+        <div class="cmd-box">
+            <div class="summary" onclick="toggle('net_config')">
+                <span class="name">Get-NetIPConfiguration</span>
+                <span class="desc">L'alternative moderne à ipconfig.</span>
+            </div>
+            <div id="net_config" class="details">
+			<div class="pre-container">
+                <pre>
+<span class="comment"># Voir la configuration IP détaillée de toutes les interfaces</span>
+<span class="cmd">Get-NetIPConfiguration</span>
+
+<span class="comment"># Filtrer pour n'avoir que l'adresse IPv4 d'une interface spécifique</span>
+<span class="cmd">Get-NetIPAddress</span> <span class="param">-InterfaceAlias</span> "Ethernet0" <span class="param">-AddressFamily</span> IPv4</pre>
+            </div>
+        </div>
+</div>
+        <div class="cmd-box">
+            <div class="summary" onclick="toggle('test_net')">
+                <span class="name">Test-NetConnection</span>
+                <span class="desc">Outil de diagnostic réseau ultime (Ping + Port scan).</span>
+            </div>
+            <div id="test_net" class="details">
+                <div class="flags">Pour tester l'ouverture des ports.</div>
+                <div class="pre-container">
+                    <pre>
+<span class="comment"># Test de connectivité simple (Ping)</span>
+<span class="cmd">Test-NetConnection</span> <span class="param">-ComputerName</span> "google.com"
+
+<span class="comment"># Vérifier si le port RDP (3389) est ouvert</span>
+<span class="cmd">Test-NetConnection</span> <span class="param">-ComputerName</span> "SRV-CORE-01" <span class="param">-Port</span> 3389</pre>
+                </div>
+            </div>
+        </div>
+        <div class="cmd-box">
+            <div class="summary" onclick="toggle('new_ip')">
+                <span class="name">New-NetIPAddress</span>
+                <span class="desc">Configurer une adresse IP statique.</span>
+            </div>
+            <div id="new_ip" class="details">
+                <div class="flags">Explication : Cette commande remplace la configuration DHCP par une configuration statique. Elle nécessite l'Index de l'interface (InterfaceIndex).</div>
+                <div class="pre-container">
+                    <pre>
+<span class="comment"># 1. Identifier l'Index de la carte</span>
+<span class="cmd">Get-NetAdapter</span>
+
+<span class="comment"># 2. Assigner l'IP et la Passerelle</span>
+<span class="cmd">New-NetIPAddress</span> <span class="param">-InterfaceIndex</span> 12 <span class="param">-IPAddress</span> "192.168.1.50" <span class="param">-PrefixLength</span> 24 <span class="param">-DefaultGateway</span> "192.168.1.1"
+
+<span class="comment"># Variante avec Alias</span>
+<span class="cmd">New-NetIPAddress</span> <span class="param">-InterfaceAlias</span> "Ethernet" <span class="param">-IPAddress</span> "10.0.0.10" <span class="param">-PrefixLength</span> 8</pre>
+                </div>
+            </div>
+        </div>
+
+        <div class="cmd-box">
+            <div class="summary" onclick="toggle('set_dns')">
+                <span class="name">Set-DnsClientServerAddress</span>
+                <span class="desc">Définir les serveurs DNS.</span>
+            </div>
+            <div id="set_dns" class="details">
+                <div class="flags">Note : Indispensable pour joindre un domaine Active Directory. Vous pouvez passer plusieurs IPs dans une liste séparée par des virgules.</div>
+                <div class="pre-container">
+                    <pre>
+<span class="comment"># Configurer un DNS primaire et secondaire</span>
+<span class="cmd">Set-DnsClientServerAddress</span> <span class="param">-InterfaceIndex</span> 12 <span class="param">-ServerAddresses</span> ("1.1.1.1","8.8.8.8")
+
+<span class="comment"># Réinitialiser pour utiliser le DHCP</span>
+<span class="cmd">Set-DnsClientServerAddress</span> <span class="param">-InterfaceIndex</span> 12 <span class="param">-ResetServerAddresses</span></pre>
+                </div>
+            </div>
+        </div>
+       <div class="cmd-box">
+            <div class="summary" onclick="toggle('netstat')">
+                <span class="name">netstat -an</span>
+                <span class="desc">Montre les ports ouverts/actifs</span>
+            </div>
+            <div id="netstat" class="details">
+                <div class="flags">bla</div>
+                <div class="pre-container">
+                    <pre>
+<span class="comment"># récupérer toutes les connexions IPv4 actives :</span>
+<span class="cmd">netstat</span> <span class="param">-p</span> IP 
+
+
+<span class="comment"># Listes les ports ouverts / actifs</span>
+<span class="cmd">netstat</span><span class="param">-an</span>
+</pre>
+	            </div>
+		<span><a href="https://learn.microsoft.com/fr-fr/windows-server/administration/windows-commands/netstat" target="blank">[MS Win Commands - Netstat]</a></span>
+            </div>
+        </div>
+        <div class="cmd-box">
+            <div class="summary" onclick="toggle('net_route')">
+                <span class="name">New-NetRoute / Get-NetRoute</span>
+                <span class="desc">Gérer la table de routage statique.</span>
+            </div>
+            <div id="net_route" class="details">
+                <div class="flags">Explication : Utilisé pour diriger le trafic vers des réseaux spécifiques via des passerelles précises.</div>
+				<div class="pre-container">
+                <pre>
+<span class="comment"># Ajouter une route vers un réseau distant</span>
+<span class="cmd">New-NetRoute</span> <span class="param">-DestinationPrefix</span> "172.16.0.0/16" <span class="param">-InterfaceIndex</span> 12 <span class="param">-NextHop</span> "192.168.1.254"
+
+<span class="comment"># Voir toutes les routes actives (équivalent de route print)</span>
+<span class="cmd">Get-NetRoute</span> <span class="param">-AddressFamily</span> IPv4</pre>
+            </div>
+        </div>
+</div>
+        <div class="cmd-box">
+            <div class="summary" onclick="toggle('net_adapter')">
+                <span class="name">Set-NetAdapter / Rename-NetAdapter</span>
+                <span class="desc">Administrer les cartes physiques.</span>
+            </div>
+            <div id="net_adapter" class="details">
+                <div class="pre-container">
+                    <pre>
+<span class="comment"># Renommer une carte pour plus de clarté</span>
+<span class="cmd">Rename-NetAdapter</span> <span class="param">-Name</span> "Ethernet 1" 
+<span class="param">-NewName</span> "LAN_Prod"
+
+<span class="comment"># Désactiver/Activer une carte</span>
+<span class="cmd">Disable-NetAdapter</span> <span class="param">-Name</span> "LAN_Prod" 
+<span class="param">-Confirm:</span>$false
+<span class="cmd">Enable-NetAdapter</span> <span class="param">-Name</span> "LAN_Prod"</pre>
+                </div>
+            </div>
+        </div>
+
+        <div class="cmd-box">
+            <div class="summary" onclick="toggle('remove_ip')">
+                <span class="name">Remove-NetIPAddress</span>
+                <span class="desc">Supprimer proprement une configuration.</span>
+            </div>
+            <div id="remove_ip" class="details">
+			<div class="pre-container">
+                <pre>
+<span class="comment"># Supprimer une adresse IP spécifique</span>
+<span class="cmd">Remove-NetIPAddress</span> <span class="param">-IPAddress</span> "192.168.1.50" <span class="param">-Confirm:</span>$false
+
+<span class="comment"># Supprimer toutes les IPs d'une interface (Nettoyage avant reconfiguration)</span>
+<span class="cmd">Get-NetIPAddress</span> <span class="param">-InterfaceIndex</span> 12 | <span class="cmd">Remove-NetIPAddress</span> <span class="param">-Confirm:</span>$false</pre>
+            </div>
+        </div>
+		</div>
+    </section>
+				<div class="cmd-box"><div class="summary" style="display:block;"><span class="name">Tester la connectivité pas à pas en suivant le modèle OSI du bas vers le haut.</span>
+				<div class="pre-container">
+				<pre>
+<span class="comment"># Test 1 — Boucle locale (couche 3) : vérifiez que la pile TCP/IP fonctionne sur la VM.</span>
+<span class="cmd">ping</span> 127.0.0.1
+<span class="comment"># Test 2 — Carte réseau locale : pingez votre propre adresse IP.</span>
+<span class="cmd">ping</span> 192.168.99.50
+<span class="comment"># Test 3 — Passerelle : vérifiez l'accès au routeur.</span>
+<span class="cmd">ping</span> 192.168.99.2
+<span class="comment"># Test 4 — Réseau externe : testez l'accès à Internet.</span>
+<span class="cmd">ping</span> 8.8.8.8
+<span class="comment"># Test 5 — Résolution DNS : vérifiez que la résolution de noms fonctionne.</span>
+<span class="cmd">Resolve-DnsName</span> <span class="param">-Name</span> www.microsoft.com
+<span class="comment"># Test avancé — Test-NetConnection :</span>
+<span class="cmd">Test-NetConnection</span> <span class="param">-ComputerName</span> 8.8.8.8 <span class="param">-Port</span> 53
+				</pre>
+				</div>
+				</div></div>
+    <blockquote>
+        <strong>Rappel Sécurité :</strong> Lorsque vous configurez un serveur à distance via SSH ou WinRM, soyez prudent avec <code>Remove-NetIPAddress</code> ou <code>Disable-NetAdapter</code>, car vous risquez de couper votre propre session de gestion.
+    </blockquote>
+    <!-- ================= SERVICES & PROCESS ================= -->
+    <section id="services">
+        <h2>Services & Rôles Serveur</h2>
+
+        <div class="cmd-box">
+            <div class="summary" onclick="toggle('services')">
+                <span class="name">Get-Service / Start-Service</span>
+                <span class="desc">Contrôler les démons Windows.</span>
+            </div>
+            <div id="services" class="details">
+			<div class="pre-container">
+                <pre>
+<span class="comment"># Lister les services dont le nom contient "sql"</span>
+<span class="cmd">Get-Service</span> <span class="param">-Name</span> "*sql*"
+
+<span class="comment"># Redémarrer le service Spouleur d'impression</span>
+<span class="cmd">Restart-Service</span> <span class="param">-Name</span> "Spooler" <span class="param">-Force</span></pre>
+            </div>
+			</div>
+        </div>
+
+        <div class="cmd-box">
+            <div class="summary" onclick="toggle('features')">
+                <span class="name">Install-WindowsFeature</span>
+                <span class="desc">Installer des rôles (IIS, DNS, ADDS).</span>
+            </div>
+            <div id="features" class="details">
+                <div class="flags">Uniquement disponible sur les éditions Windows Server.</div>
+				<div class="pre-container">
+                <pre>
+<span class="comment"># Installer le serveur Web IIS avec les outils de gestion</span>
+<span class="cmd">Install-WindowsFeature</span> <span class="param">-Name</span> Web-Server <span class="param">-IncludeManagementTools</span>
+
+<span class="comment"># Lister tous les rôles déjà installés sur le serveur</span>
+<span class="cmd">Get-WindowsFeature</span> | <span class="cmd">Where-Object</span> { <span class="cmd">$_</span>.Installed <span class="param">-eq</span> $True }</pre>
+            </div></div>
+        </div>
+    </section>
+
+    <!-- ================= SYSTEM MAINTENANCE ================= -->
+    <section id="maintenance">
+        <h2>Maintenance Système</h2>
+        
+        <div class="cmd-box">
+            <div class="summary" onclick="toggle('eventlog')">
+                <span class="name">Get-EventLog / Get-WinEvent</span>
+                <span class="desc">Analyser l'Observateur d'événements.</span>
+            </div>
+            <div id="eventlog" class="details">
+			<div class="pre-container">
+                <pre>
+<span class="comment"># Afficher les 20 dernières erreurs du journal Système</span>
+<span class="cmd">Get-EventLog</span> <span class="param">-LogName</span> System <span class="param">-EntryType</span> Error <span class="param">-Newest</span> 20
+
+<span class="comment"># Chercher des événements liés aux échecs de connexion (Security)</span>
+<span class="cmd">Get-WinEvent</span> <span class="param">-FilterHashtable</span> @{LogName='Security'; ID=4625}</pre>
+            </div></div>
+        </div>
+    </section>
+
+    <blockquote>
+        <strong>Conseil de Pro :</strong> Utilisez toujours l'auto-complétion avec la touche <code>Tab</code> et n'hésitez pas à abuser de <code>Get-Help Nom-De-La-Commande -Examples</code> pour voir des cas d'utilisation concrets.
+    </blockquote>
+</div>
+</body>
+</html>

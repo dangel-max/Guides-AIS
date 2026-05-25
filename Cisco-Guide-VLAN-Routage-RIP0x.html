@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+  function makeInput(label, value, cls="") {
+    return `
+      <label class="cfgLabel">
+        <span>${label}</span>
+        <input type="text" class="${cls}" value="${value}">
+      </label>
+    `;
+  }
+
+  function renderVlanBuilder(box) {
+    box.innerHTML = `
+      <div class="cfgPanel">
+        ${makeInput("Nb VLANs", "3", "vlanCount")}
+        <div class="vlanRows"></div>
+      </div>
+    `;
+
+    const countInput = box.querySelector(".vlanCount");
+    const rows = box.querySelector(".vlanRows");
+
+    function drawRows() {
+      rows.innerHTML = "";
+      const n = parseInt(countInput.value) || 0;
+
+      for(let i=1;i<=n;i++) {
+        rows.innerHTML += `
+          <div class="cfgRow">
+            ${makeInput("VLAN ID", i*10, "vid")}
+            ${makeInput("Nom", "VLAN"+(i*10), "vname")}
+          </div>
+        `;
+      }
+
+      bindUpdate();
+      updateOutput();
+    }
+
+    function bindUpdate() {
+      rows.querySelectorAll("input").forEach(el=>{
+        el.addEventListener("input", updateOutput);
+      });
+    }
+
+    function updateOutput() {
+      let txt = "enable\nconfigure terminal\n";
+
+      const ids = [...rows.querySelectorAll(".vid")];
+      const names = [...rows.querySelectorAll(".vname")];
+
+      ids.forEach((id,i)=>{
+        txt += `vlan ${id.value}\n`;
+        txt += ` name ${names[i].value}\n`;
+      });
+
+      txt += "end\nwrite memory";
+
+      box.parentElement.querySelector("pre").textContent = txt;
+    }
+
+    countInput.addEventListener("input", drawRows);
+    drawRows();
+  }
+
+  function renderInterfaceBuilder(box) {
+    box.innerHTML = `
+      <div class="cfgPanel">
+        ${makeInput("Nb interfaces", "3", "ifCount")}
+        <div class="ifRows"></div>
+      </div>
+    `;
+
+    const countInput = box.querySelector(".ifCount");
+    const rows = box.querySelector(".ifRows");
+
+    function drawRows() {
+      rows.innerHTML = "";
+      const n = parseInt(countInput.value)||0;
+
+      for(let i=1;i<=n;i++) {
+        rows.innerHTML += `
+          <div class="cfgRow">
+            ${makeInput("Interface", "fa0/"+i, "ifname")}
+            ${makeInput("VLAN", i*10, "ifvlan")}
+          </div>
+        `;
+      }
+
+      bindUpdate();
+      updateOutput();
+    }
+
+    function bindUpdate() {
+      rows.querySelectorAll("input").forEach(el=>{
+        el.addEventListener("input", updateOutput);
+      });
+    }
+
+    function updateOutput() {
+      let txt = "configure terminal\n";
+
+      const names = [...rows.querySelectorAll(".ifname")];
+      const vlans = [...rows.querySelectorAll(".ifvlan")];
+
+      names.forEach((n,i)=>{
+        txt += `interface ${n.value}\n`;
+        txt += ` switchport mode access\n`;
+        txt += ` switchport access vlan ${vlans[i].value}\n`;
+      });
+
+      txt += "end\nwrite memory";
+
+      box.parentElement.querySelector("pre").textContent = txt;
+    }
+
+    countInput.addEventListener("input", drawRows);
+    drawRows();
+  }
+
+  function renderOspfBuilder(box) {
+    box.innerHTML = `
+      <div class="cfgPanel">
+        ${makeInput("Process ID", "1", "pid")}
+        ${makeInput("Area", "0", "area")}
+        ${makeInput("Router-ID", "1.1.1.1", "rid")}
+      </div>
+    `;
+
+    box.querySelectorAll("input").forEach(i=>{
+      i.addEventListener("input", updateOutput);
+    });
+
+    function updateOutput() {
+      const pid = box.querySelector(".pid").value;
+      const area = box.querySelector(".area").value;
+      const rid = box.querySelector(".rid").value;
+
+      box.parentElement.querySelector("pre").textContent =
+`enable
+configure terminal
+router ospf ${pid}
+ router-id ${rid}
+ network 10.0.0.0 0.0.0.3 area ${area}
+end
+write memory`;
+    }
+
+    updateOutput();
+  }
+
+  document.querySelectorAll(".builder-vlan").forEach(renderVlanBuilder);
+  document.querySelectorAll(".builder-if").forEach(renderInterfaceBuilder);
+  document.querySelectorAll(".builder-ospf").forEach(renderOspfBuilder);
+
+});
+</script>
+<title>Guide Cisco VLAN, ROUTAGE et DHCP</title>
+<style>
+:root{--bg:#0b0f14;--panel:#121922;--code:#000;--panel2:#182230;--text:#e7edf5;--muted2:#9fb0c3;--muted:#bce;--accent:#4ea1ff;--line:#243244;--cmd:#fbbf24;}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:linear-gradient(180deg,#0b0f14,#111827);color:var(--text)}
+.wrap{max-width:1100px;margin:auto;padding:32px}
+.hero{border:1px solid var(--line);box-shadow:0 10px 30px rgba(0,0,0,.35);text-align:center;padding:15px;background:#1e293b;border-radius:10px;margin-bottom:5px}
+h1{margin:0 0 8px;font-size:30px}
+.sub{color:var(--muted)}
+details{margin:14px 0;border:1px solid var(--line);border-radius:16px;background:var(--panel)}
+summary{overflow:hidden;color:var(--muted);list-style:none;cursor:pointer;padding:18px 20px;font-weight:700;background:#1e293b;border-radius:14px;margin:2px}
+summary::-webkit-details-marker{display:none}
+summary:hover{background:#2d3e54}
+.desc{padding:15px;color:var(--cmd);font-weight:normal;font-family:monospace;font-size:1.1em}
+pre{margin:5px;padding:18px 20px;background:var(--code);border-radius:10px;overflow:auto;color:#dff3ff;font-size:1.1em}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:28px}
+.card{margin-top:28px}
+.refs{padding:10px;color:var(--muted)}
+a{font-weight:normal;font-family:monospace;font-size:1.1em;text-decoration:none;letter-spacing: -0.03em;color:#aff}
+a:not(:nth-last-of-type(1))::after{text-decoration:none;content:' • '}
+a:hover{color:var(--accent)}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+.cfgPanel{
+background:#0f172a;
+padding:12px;
+margin:8px;
+border-radius:10px;
+border:1px solid #334155;
+}
+.cfgRow{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:10px;
+margin-top:8px;
+}
+.cfgLabel{
+display:flex;
+flex-direction:column;
+font-size:13px;
+color:#9fb0c3;
+gap:4px;
+}
+.cfgLabel input{
+background:#020617;
+color:#e7edf5;
+border:1px solid #475569;
+padding:8px;
+border-radius:8px;
+font-family:monospace;
+}
+</style>
+</head>
+<body><div class="wrap">
+<div class="hero"><h1>Configuration Cisco : VLANs, Routage inter-VLAN, DHCP centralisé</h1><div class='refs'>Références : <a href='https://www.it-connect.fr/cisco-configuration-du-routage-rip/'>IT-Connect - Conf RIP</a> | <a href='https://www.it-connect.fr/mise-en-place-de-vlans-et-de-routage-inter-vlans/'>IT Connect - VLANs et Routage</a></div></div>
+<div class="grid">
+<section class="card"><h2>Partie 1 — Réseau à 3 VLANs sur 2 routeurs</h2>
+<details><summary>Étape 1 : Créer les VLANs sur les switchs</summary>
+<div class="builder-vlan"></div>
+<div class="desc">Configurer plusieurs VLANs, à copier les switchs concernés.</div>
+<pre></pre>
+</details>
+
+<details><summary>Étape 2 : Affecter les ports des PC aux VLANs</summary>
+<div class='desc'>Associer chaque port utilisateur au VLAN correspondant.</div><pre>configure terminal
+interface fa0/1
+ switchport mode access
+ switchport access vlan 10
+interface fa0/2
+ switchport mode access
+ switchport access vlan 20
+interface fa0/3
+ switchport mode access
+ switchport access vlan 30
+end
+write memory</pre></details>
+<details><summary>Étape 3 : Configurer le port trunk vers le routeur</summary><div class='desc'>Transporter les VLANs entre switch et routeur.</div><pre>configure terminal
+interface fa0/24
+ switchport mode trunk
+ switchport trunk allowed vlan 10,20,30
+end
+write memory</pre></details>
+<details><summary>Étape 4 : Sous-interfaces du Routeur 1</summary><pre>enable
+configure terminal
+interface g0/0
+ no shutdown
+interface g0/0.10
+ encapsulation dot1Q 10
+ ip address 192.168.10.1 255.255.255.0
+interface g0/0.20
+ encapsulation dot1Q 20
+ ip address 192.168.20.1 255.255.255.0
+interface g0/0.30
+ encapsulation dot1Q 30
+ ip address 192.168.30.1 255.255.255.0
+end
+write memory</pre></details>
+<details><summary>Étape 5 : Sous-interfaces du Routeur 2</summary><pre>enable
+configure terminal
+interface g0/0
+ no shutdown
+interface g0/0.10
+ encapsulation dot1Q 10
+ ip address 192.168.110.1 255.255.255.0
+interface g0/0.20
+ encapsulation dot1Q 20
+ ip address 192.168.120.1 255.255.255.0
+interface g0/0.30
+ encapsulation dot1Q 30
+ ip address 192.168.130.1 255.255.255.0
+end
+write memory</pre></details>
+<details><summary>Étape 6 : Lien entre les deux routeurs</summary><pre>Routeur1
+configure terminal
+interface g0/1
+ ip address 10.0.0.1 255.255.255.252
+ no shutdown
+end
+
+Routeur2
+configure terminal
+interface g0/1
+ ip address 10.0.0.2 255.255.255.252
+ no shutdown
+end
+write memory</pre></details>
+<details><summary>Étape 7 : Routes statiques Routeur 1</summary><pre>configure terminal
+ip route 192.168.110.0 255.255.255.0 10.0.0.2
+ip route 192.168.120.0 255.255.255.0 10.0.0.2
+ip route 192.168.130.0 255.255.255.0 10.0.0.2
+end
+write memory</pre></details>
+<details><summary>Étape 8 : Routes statiques Routeur 2</summary><pre>configure terminal
+ip route 192.168.10.0 255.255.255.0 10.0.0.1
+ip route 192.168.20.0 255.255.255.0 10.0.0.1
+ip route 192.168.30.0 255.255.255.0 10.0.0.1
+end
+write memory</pre></details>
+<details><summary>Étape 9 : Adresses IP des PC</summary><pre>PC1 : 192.168.10.10 /24 passerelle 192.168.10.1
+PC2 : 192.168.20.10 /24 passerelle 192.168.20.1
+PC3 : 192.168.130.10 /24 passerelle 192.168.130.1</pre></details>
+</section>
+<section class="card"><h2>Partie 2 — Serveur DHCP centralisé</h2>
+<details><summary>Étape 1 : Connecter le serveur DHCP sur un VLAN dédié</summary><pre>enable
+configure terminal
+vlan 99
+ name DHCP
+interface fa0/10
+ switchport mode access
+ switchport access vlan 99
+end
+write memory</pre></details>
+<details><summary>Étape 2 : Autoriser le VLAN DHCP sur le trunk</summary><pre>configure terminal
+interface fa0/24
+ switchport mode trunk
+ switchport trunk allowed vlan 10,20,30,99
+end
+write memory</pre></details>
+<details><summary>Étape 3 : Sous-interface VLAN DHCP sur le routeur</summary><pre>configure terminal
+interface g0/0.99
+ encapsulation dot1Q 99
+ ip address 192.168.99.1 255.255.255.0
+end
+write memory</pre></details>
+<details><summary>Étape 4 : Activer le relais DHCP</summary><pre>configure terminal
+interface g0/0.10
+ ip helper-address 192.168.99.10
+interface g0/0.20
+ ip helper-address 192.168.99.10
+interface g0/0.30
+ ip helper-address 192.168.99.10
+end
+write memory</pre></details>
+<details><summary>Étape 5 : IP fixe du serveur DHCP</summary><pre>Serveur DHCP : 192.168.99.10 /24
+Passerelle : 192.168.99.1</pre></details>
+<details><summary>Étape 6 : Pools DHCP à créer sur le serveur</summary><pre>Pool VLAN10
+Réseau 192.168.10.0 /24
+Passerelle 192.168.10.1
+
+Pool VLAN20
+Réseau 192.168.20.0 /24
+Passerelle 192.168.20.1
+
+Pool VLAN30
+Réseau 192.168.30.0 /24
+Passerelle 192.168.30.1</pre></details>
+<details><summary>Étape 7 : Passer les PC en DHCP</summary><pre>IP Configuration : DHCP</pre></details>
+</section>
+<section class="card">
+  <h2>Partie 3 — Routage dynamique RIPv2</h2>
+
+  <details>
+    <summary>Étape 1 : Activer RIPv2 sur le Routeur 1</summary>
+    <div class="desc">Déclarer les réseaux connectés au Routeur 1 et désactiver l’auto-résumé.</div>
+    <pre>enable
+configure terminal
+router rip
+ version 2
+ no auto-summary
+ network 10.0.0.0
+ network 192.168.10.0
+ network 192.168.20.0
+ network 192.168.30.0
+end
+write memory</pre>
+  </details>
+
+  <details>
+    <summary>Étape 2 : Activer RIPv2 sur le Routeur 2</summary>
+    <div class="desc">Déclarer les réseaux connectés au Routeur 2 et désactiver l’auto-résumé.</div>
+    <pre>enable
+configure terminal
+router rip
+ version 2
+ no auto-summary
+ network 10.0.0.0
+ network 192.168.110.0
+ network 192.168.120.0
+ network 192.168.130.0
+end
+write memory</pre>
+  </details>
+
+  <details>
+    <summary>Étape 3 : Rendre passives les interfaces LAN du Routeur 1</summary>
+    <div class="desc">Empêcher l’envoi d’annonces RIP vers les VLANs utilisateurs.</div>
+    <pre>configure terminal
+router rip
+ passive-interface g0/0.10
+ passive-interface g0/0.20
+ passive-interface g0/0.30
+end
+write memory</pre>
+  </details>
+
+  <details>
+    <summary>Étape 4 : Rendre passives les interfaces LAN du Routeur 2</summary>
+    <div class="desc">Empêcher l’envoi d’annonces RIP vers les VLANs utilisateurs.</div>
+    <pre>configure terminal
+router rip
+ passive-interface g0/0.10
+ passive-interface g0/0.20
+ passive-interface g0/0.30
+end
+write memory</pre>
+  </details>
+
+  <details>
+    <summary>Étape 5 : Vérifier les routes apprises</summary>
+    <div class="desc">Contrôler la table de routage et les voisins RIP.</div>
+    <pre>show ip route
+show ip protocols</pre>
+  </details>
+</section>
+<section class="card">
+  <h2>Partie 4 — Routage dynamique EIGRP</h2>
+
+  <details>
+    <summary>Étape 1 : Activer EIGRP sur le Routeur 1</summary>
+    <div class="desc">Créer le processus EIGRP AS 100, annoncer les réseaux locaux et désactiver l’auto-résumé.</div>
+    <pre>enable
+configure terminal
+router eigrp 100
+ no auto-summary
+ router-id 1.1.1.1
+ network 10.0.0.0 0.0.0.3
+ network 192.168.10.0 0.0.0.255
+ network 192.168.20.0 0.0.0.255
+ network 192.168.30.0 0.0.0.255
+end
+write memory</pre>
+  </details>
+
+  <details>
+    <summary>Étape 2 : Activer EIGRP sur le Routeur 2</summary>
+    <div class="desc">Créer le même AS EIGRP sur le second routeur et annoncer ses réseaux locaux.</div>
+    <pre>enable
+configure terminal
+router eigrp 100
+ no auto-summary
+ router-id 2.2.2.2
+ network 10.0.0.0 0.0.0.3
+ network 192.168.110.0 0.0.0.255
+ network 192.168.120.0 0.0.0.255
+ network 192.168.130.0 0.0.0.255
+end
+write memory</pre>
+  </details>
+
+  <details>
+    <summary>Étape 3 : Rendre passives les interfaces LAN du Routeur 1</summary>
+    <div class="desc">Bloquer l’envoi des paquets EIGRP vers les VLANs utilisateurs.</div>
+    <pre>configure terminal
+router eigrp 100
+ passive-interface g0/0.10
+ passive-interface g0/0.20
+ passive-interface g0/0.30
+end
+write memory</pre>
+  </details>
+
+  <details>
+    <summary>Étape 4 : Rendre passives les interfaces LAN du Routeur 2</summary>
+    <div class="desc">Bloquer l’envoi des paquets EIGRP vers les VLANs utilisateurs.</div>
+    <pre>configure terminal
+router eigrp 100
+ passive-interface g0/0.10
+ passive-interface g0/0.20
+ passive-interface g0/0.30
+end
+write memory</pre>
+  </details>
+
+  <details>
+    <summary>Étape 5 : Modifier les temporisateurs Hello et Hold</summary>
+    <div class="desc">Accélérer la détection de perte de voisinage sur le lien inter-routeurs.</div>
+    <pre>configure terminal
+interface g0/1
+ ip hello-interval eigrp 100 2
+ ip hold-time eigrp 100 6
+end
+write memory</pre>
+  </details>
+
+  <details>
+    <summary>Étape 6 : Ajuster la bande passante du lien</summary>
+    <div class="desc">Influencer la métrique EIGRP avec une valeur de bande passante cohérente.</div>
+    <pre>configure terminal
+interface g0/1
+ bandwidth 100000
+end
+write memory</pre>
+  </details>
+
+  <details>
+    <summary>Étape 7 : Activer l’authentification MD5</summary>
+    <div class="desc">Sécuriser les échanges EIGRP sur le lien entre routeurs.</div>
+    <pre>configure terminal
+key chain EIGRP_KEYS
+ key 1
+  key-string MonSecret123
+
+interface g0/1
+ ip authentication mode eigrp 100 md5
+ ip authentication key-chain eigrp 100 EIGRP_KEYS
+end
+write memory</pre>
+  </details>
+
+  <details>
+    <summary>Étape 8 : Résumer plusieurs routes sur le Routeur 1</summary>
+    <div class="desc">Annoncer un préfixe agrégé vers le voisin.</div>
+    <pre>configure terminal
+interface g0/1
+ ip summary-address eigrp 100 192.168.0.0 255.255.0.0
+end
+write memory</pre>
+  </details>
+
+  <details>
+    <summary>Étape 9 : Vérifier le voisinage et les routes</summary>
+    <div class="desc">Contrôler les adjacences EIGRP et la table de routage.</div>
+    <pre>show ip eigrp neighbors
+show ip eigrp topology
+show ip route eigrp</pre>
+  </details>
+</section>
+<section class="card">
+  <h2>Partie 5 — Routage dynamique OSPF</h2>
+
+  <details>
+    <summary>Étape 1 : Activer OSPF sur le Routeur 1</summary>
+
+    <div class="cli-template"
+         data-process="1"
+         data-area="0">
+    </div>
+
+    <div class="desc">
+      Créer le processus OSPF, annoncer les réseaux locaux du Routeur 1 et utiliser l’area backbone.
+    </div>
+
+    <pre data-template="enable
+configure terminal
+router ospf {{PROCESS}}
+ router-id 1.1.1.1
+ network 10.0.0.0 0.0.0.3 area {{AREA}}
+ network 192.168.10.0 0.0.0.255 area {{AREA}}
+ network 192.168.20.0 0.0.0.255 area {{AREA}}
+ network 192.168.30.0 0.0.0.255 area {{AREA}}
+end
+write memory"></pre>
+  </details>
+
+  <details>
+    <summary>Étape 2 : Activer OSPF sur le Routeur 2</summary>
+
+    <div class="cli-template"
+         data-process="1"
+         data-area="0">
+    </div>
+
+    <div class="desc">
+      Créer le même processus OSPF sur le Routeur 2 et annoncer ses réseaux locaux.
+    </div>
+
+    <pre data-template="enable
+configure terminal
+router ospf {{PROCESS}}
+ router-id 2.2.2.2
+ network 10.0.0.0 0.0.0.3 area {{AREA}}
+ network 192.168.110.0 0.0.0.255 area {{AREA}}
+ network 192.168.120.0 0.0.0.255 area {{AREA}}
+ network 192.168.130.0 0.0.0.255 area {{AREA}}
+end
+write memory"></pre>
+  </details>
+
+  <details>
+    <summary>Étape 3 : Rendre passives les interfaces LAN du Routeur 1</summary>
+
+    <div class="cli-template"
+         data-process="1"
+         data-if-lan="g0/0.10"
+         data-if-lan2="g0/0.20"
+         data-if-lan3="g0/0.30">
+    </div>
+
+    <div class="desc">
+      Bloquer l’envoi des Hello OSPF vers les VLANs utilisateurs.
+    </div>
+
+    <pre data-template="configure terminal
+router ospf {{PROCESS}}
+ passive-interface {{IF_LAN}}
+ passive-interface {{IF_LAN2}}
+ passive-interface {{IF_LAN3}}
+end
+write memory"></pre>
+  </details>
+
+  <details>
+    <summary>Étape 4 : Modifier le coût OSPF du lien WAN</summary>
+
+    <div class="cli-template"
+         data-if-wan="g0/1"
+         data-cost="5">
+    </div>
+
+    <div class="desc">
+      Ajuster la préférence du chemin en modifiant le coût de l’interface.
+    </div>
+
+    <pre data-template="configure terminal
+interface {{IF_WAN}}
+ ip ospf cost {{COST}}
+end
+write memory"></pre>
+  </details>
+
+  <details>
+    <summary>Étape 5 : Modifier les temporisateurs Hello et Dead</summary>
+
+    <div class="cli-template"
+         data-if-wan="g0/1"
+         data-hello="5"
+         data-dead="20">
+    </div>
+
+    <div class="desc">
+      Accélérer la détection de perte du voisin sur le lien inter-routeurs.
+    </div>
+
+    <pre data-template="configure terminal
+interface {{IF_WAN}}
+ ip ospf hello-interval {{HELLO}}
+ ip ospf dead-interval {{DEAD}}
+end
+write memory"></pre>
+  </details>
+
+  <details>
+    <summary>Étape 6 : Authentification MD5 OSPF</summary>
+
+    <div class="cli-template"
+         data-if-wan="g0/1"
+         data-keyid="1"
+         data-key="MonSecret123">
+    </div>
+
+    <div class="desc">
+      Sécuriser les échanges OSPF sur le lien WAN.
+    </div>
+
+    <pre data-template="configure terminal
+interface {{IF_WAN}}
+ ip ospf message-digest-key {{KEYID}} md5 {{KEY}}
+ ip ospf authentication message-digest
+end
+write memory"></pre>
+  </details>
+
+  <details>
+    <summary>Étape 7 : Résumer plusieurs routes</summary>
+
+    <div class="cli-template"
+         data-process="1"
+         data-summary-ip="192.168.0.0"
+         data-summary-mask="255.255.0.0">
+    </div>
+
+    <div class="desc">
+      Agréger plusieurs réseaux en une seule annonce OSPF.
+    </div>
+
+    <pre data-template="configure terminal
+router ospf {{PROCESS}}
+ summary-address {{SUMMARY_IP}} {{SUMMARY_MASK}}
+end
+write memory"></pre>
+  </details>
+
+  <details>
+    <summary>Étape 8 : Vérifier les voisins et routes</summary>
+
+    <div class="desc">
+      Contrôler les adjacences et la table de routage OSPF.
+    </div>
+
+    <pre>show ip ospf neighbor
+show ip ospf interface brief
+show ip route ospf</pre>
+  </details>
+</section>
+
+</div>
+
+</div></body></html>
